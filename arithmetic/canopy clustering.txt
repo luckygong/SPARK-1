@@ -1,0 +1,10 @@
+Canopy算法是基于Kmeans算法的一种优化的聚类方法。
+(This technique is often used as an initial step in other clustering techniques such as k-means clustering.)
+
+优化体现在:
+
+1.前期能通过一些低性能的算法，快速的获取聚类中心
+
+2.分好的每个聚类内部在进行k-means计算(不同聚类之间不进行相似度计算)
+
+http://my.oschina.net/repine/blog/282975

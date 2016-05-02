@@ -1,0 +1,165 @@
+﻿
+// 源码整理自 ML with Spark (简单但值得学习的文本处理流程！)
+
+
+val path = "hdfs://localhost:9000/test/input/20news-bydate-train/*"
+val rdd  = sc.wholeTextFiles(path)
+
+// 加载数据
+
+val text = rdd.map{
+	case (file,text) => text
+}
+
+// 处理输入数据
+
+//各文档对应的类别
+val newsgroups = rdd.map{
+	case (file,text) => file.split("/").takeRight(2).head
+}
+
+//统计各类别的文档数目
+val countByGroup = newsgroups.map((_,1)).reduceByKey(_ + _)
+	.collect.sortBy(-_._2).mkString("\n")
+
+//非数字过滤
+val regex = """[^0-9]*""".r
+
+//stop单词过滤
+val stopwords = Set(
+	"the","a","an","of","or","in","for","by","on","but", "is", "not",
+	"with", "as", "was", "if","they", "are", "this", "and", "it", "have", 
+	"from", "at", "my","be", "that", "to"
+)
+
+//稀疏单词过滤
+val oreringAsc = Ordering.by[(String, Int), Int](-_._2)
+val rareTokens = text.flatMap(_.split("""\W+"""))
+		.map(_.toLowerCase)
+		.filter(regex.pattern.matcher(_).matches)
+		.map((_,1)).reduceByKey(_+_)
+		.filter{ case (k,v) => v < 2}
+		.map(_._1).collect.toSet
+
+//所有过滤结合起来		
+def tokenize(line:String) : Seq[String] = {
+	line.split("""\W+""")
+		.map(_.toLowerCase)
+		.filter(token => regex.pattern.matcher(token).matches)
+		.filterNot(token => stopwords.contains(token))
+		.filterNot(token => rareTokens.contains(token))
+		.filter(_.size >= 2)
+		.toSeq
+}
+
+//记得不要排序,因为我们等一下还要和Title ZIP!
+tokens = text.flatMap(doc => tokenize(doc)).distinct.count
+
+// println(text.flatMap(doc => tokenize(doc)).distinct.count)
+
+// 训练模型
+
+import org.apache.spark.mllib.linalg.{ SparseVector => SV }
+import org.apache.spark.mllib.feature.HashingTF
+import org.apache.spark.mllib.feature.IDF
+
+
+val dim = math.pow(2,18).toInt
+val hashingTF = new HashingTF(dim)
+val tf = hashingTF.transform(tokens)
+
+// 得到idf和tfidf
+val idf = new IDF().fit(tf)
+val tfidf = idf.transform(tf)
+
+
+//测试1##########比较同类型的CosineSim
+val hockeyText = rdd.filter{
+	case (file,text) => file.contains("hockey")
+}
+
+//获取测试数据的idf和tfidf,用来比较训练model的差异以此得出相似度
+val hockeyTF = hockeyText.mapValues(doc =>
+hashingTF.transform(tokenize(doc)))
+val hockeyTfIdf = idf.transform(hockeyTF.map(_._2))
+
+import breeze.linalg._
+val hockey1 = hockeyTfIdf.sample(true, 0.1, 42).first.asInstanceOf[SV]
+val breeze1 = new SparseVector(hockey1.indices, hockey1.values,hockey1.size)
+
+val hockey2 = hockeyTfIdf.sample(true, 0.1, 43).first.asInstanceOf[SV]
+val breeze2 = new SparseVector(hockey2.indices, hockey2.values,hockey2.size)
+
+
+val cosineSim = breeze1.dot(breeze2) / (norm(breeze1) * norm(breeze2))
+// println(cosineSim)
+
+
+//测试2########比较不同类型的CosineSim
+val graphicsText = rdd.filter { 
+	case (file, text) => file.contains("comp.graphics") 
+}
+
+//获取测试数据的idf和tfidf,用来比较训练model的差异以此得出相似度
+val graphicsTF = graphicsText.mapValues(doc =>
+hashingTF.transform(tokenize(doc)))
+val graphicsTfIdf = idf.transform(graphicsTF.map(_._2))
+
+val graphics = graphicsTfIdf.sample(true, 0.1, 42).first.asInstanceOf[SV]
+val breezeGraphics = new SparseVector(graphics.indices,graphics.values, graphics.size)
+
+val cosineSim2 = breeze1.dot(breezeGraphics) / (norm(breeze1) * norm(breezeGraphics))
+// println(cosineSim2)
+
+
+
+// 使用tfidf建立分类模型
+
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.classification.NaiveBayes
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
+
+val newsgroupsMap = newsgroups.distinct.collect().zipWithIndex.toMap
+val zipped = newsgroups.zip(tfidf)
+val train = zipped.map{
+	// tfidf 对应上title就可以把tfidf当成特征向量(满足正太分布)
+	case (topic,vector) => LabeledPoint(newsgroupsMap(topic), vector)
+}
+train.cache
+
+
+//测试分类
+
+val testPath = "hdfs://localhost:9000/test/input/20news-bydate-test/*"
+
+val testRDD = sc.wholeTextFiles(testPath)
+val testLabels = testRDD.map { case (file, text) =>
+		val topic = file.split("/").takeRight(2).head
+		newsgroupsMap(topic)
+}
+
+
+val testTf = testRDD.map { case (file, text) =>
+	hashingTF.transform(tokenize(text)) 
+}
+val testTfIdf = idf.transform(testTf)
+val zippedTest = testLabels.zip(testTfIdf)
+val test = zippedTest.map { case (topic, vector) =>
+	LabeledPoint(topic, vector)
+}
+
+# model自已建立
+val predictionAndLabel = test.map(p => (model.predict(p.features),p.label))
+val accuracy = 1.0 * predictionAndLabel.filter(x => x._1 == x._2).count() / test.count()
+val metrics = new MulticlassMetrics(predictionAndLabel)
+
+
+println(accuracy)
+println(metrics.weightedFMeasure)
+
+
+
+
+
+
+

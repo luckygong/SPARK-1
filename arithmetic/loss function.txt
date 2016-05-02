@@ -1,0 +1,6 @@
+损失函数
+
+	在统计学，统计决策理论和经济学中，损失函数是指一种将一个事件（在一个样本空间中的一个元素）
+映射到一个表达与其事件相关的经济成本或机会成本的实数上的一种函数。
+
+http://baike.baidu.com/link?url=Lu_UP2nk-o0KnnbGBT7HKGXt2qIbNsn6WXh32d3rs8QRZFpKH2b2jH6RBIiZHNw8iHXcOaMDO0kuWl2xHQO0bK

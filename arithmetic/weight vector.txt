@@ -1,0 +1,6 @@
+权向量
+
+	权向量又称为权重向量。权向量ωm中的权系数ωi的大小代表相应目标fi在多目标最优化问题中的重要程度，
+ωi越大表示fi在问题中越重要，反之，越小的ωi表示fi越不重要。
+
+http://baike.baidu.com/link?url=L2Fobqgz8nIacnOGf50d9WCuB2PDdCNaqZSHtCeyzBH6_QwIF-z-ON6ymSPH5Fyh3xtU3q_CT3qn4oeUPcY2g_

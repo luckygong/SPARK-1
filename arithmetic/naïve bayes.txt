@@ -1,0 +1,12 @@
+贝叶斯分类算法
+
+
+	贝叶斯分类算法是统计学的一种分类方法，它是一类利用概率统计知识进行分类的算法。
+在许多场合，朴素贝叶斯(Naïve Bayes，NB)分类算法可以与决策树和神经网络分类算法相媲美，
+该算法能运用到大型数据库中，而且方法简单、分类准确率高、速度快。
+
+	由于贝叶斯定理假设一个属性值对给定类的影响独立于其它属性的值，而此假设在实际情况中经常是不成立的，
+因此其分类准确率可能会下降。为此，就衍生出许多降低独立性假设的贝叶斯分类算法，
+如TAN(tree augmented Bayes network)算法。
+
+http://baike.baidu.com/link?url=479bSJPK3i7UAxDoyFfzuDciHHTrR4XlilU96aC8i1RioUmHXbE8Veb5bYenBJiOFMganvG5RNIO4Zz4_BJD9a

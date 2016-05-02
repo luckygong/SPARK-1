@@ -1,0 +1,7 @@
+最小二乘法
+
+	最小二乘法（又称最小平方法）是一种数学优化技术。它通过最小化误差的平方和寻找数据的最佳函数匹配。
+利用最小二乘法可以简便地求得未知的数据，并使得这些求得的数据与实际数据之间误差的平方和为最小。
+最小二乘法还可用于曲线拟合。其他一些优化问题也可通过最小化能量或最大化熵用最小二乘法来表达。
+
+http://baike.baidu.com/link?url=QbcCqx5G2Fkmi3Qi_YHRNiC9zJNFEHw4gUlisCn8lvJ7nqCFXitkhYPxwa44HHoDVgJ00mmYE78NWhj7F5Ws-K

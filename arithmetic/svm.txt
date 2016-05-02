@@ -1,0 +1,6 @@
+SVM方法
+	SVM方法是通过一个非线性映射p，把样本空间映射到一个高维乃至无穷维的特征空间中（Hilbert空间），
+使得在原来的样本空间中非线性可分的问题转化为在特征空间中的线性可分的问题．
+简单地说，就是升维和线性化．
+
+http://baike.baidu.com/link?url=RM2GqCP_dRr38Djr6nWaglDA_N2ImjWiIIkcUeihYcdSh-6na9T4pocwlyt6M3xIrTYWqaw146sdJSscD_edoK

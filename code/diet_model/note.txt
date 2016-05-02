@@ -1,0 +1,11 @@
+常用推荐系统:(数学知识:欧几里德距离,余弦相似度,矩阵分解)
+
+Content-based filtering	物品过滤(基于物品)
+
+Collaborative filtering 协同过滤(基于用户)
+
+
+
+
+
+项目使用协同过滤编写餐饮推荐系统

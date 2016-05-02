@@ -1,0 +1,9 @@
+
+1.编译
+sbt compile
+
+2.打包
+sbt package
+
+3.部署
+spark-submit --class  Graph1 --master local ./graphx/target/scala-2.10/graphx_2.10-1.0.jar

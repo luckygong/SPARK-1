@@ -1,0 +1,2 @@
+1.提交JSON作业
+spark-submit --class sparkSQLJSON --master local sqlspark_2.10-0.1-SNAPSHOT.jar
