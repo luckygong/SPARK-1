@@ -1,0 +1,75 @@
+
+常用的API总结
+
+1.创建SparkContext
+
+val config = new SparkConf().setMaster("spark://host:port").setAppName("big app")
+val sc = new SparkContext(config)
+
+2.RDD特性
+(1)immutable
+(2)Partitioned
+(3)Fault Tolerant
+(4)Interface
+(5)Strongly Typed
+(6)In Memory
+
+3.创建RDD
+
+(1)parallelize (在单机中创建RDD,使用于测试环境中)
+val xs = (1 to 10000).toList
+val rdd = sc.parallelize(xs)
+
+(2)textFile
+val rdd = sc.textFile("hdfs://namenode:9000/path/to/file-or-directory")
+val rdd = sc.textFile("hdfs://namenode:9000/path/to/directory/*.gz")
+
+(3)wholeTextFiles
+val rdd = sc.wholeTextFiles("path/to/my-data/*.txt")
+
+(4)sequenceFile
+val rdd = sc.sequenceFile[String, String]("some-file")
+
+4.RDD操作(transformation and action)
+
+(1)Transformations(transformations are lazy)
+	map
+	filter
+	flatMap
+	mapPartitions #直接处理一个分区的数据
+	union # 例子: val linesFromBothFiles = linesFile1.union(linesFile2)
+	intersection # 交集 例子: val linesPresentInBothFiles = linesFile1.intersection(linesFile2)
+	subtract # 差集 例子: val linesInFile1Only = linesFile1.subtract(linesFile2)
+	distinct
+	cartesian # 笛卡儿积
+	# 例子:
+	# val numbers = sc.parallelize(List(1, 2, 3, 4))
+	# val alphabets = sc.parallelize(List("a", "b", "c", "d"))
+	# val cartesianProduct = numbers.cartesian(alphabets)
+	# scala> cartesianProduct.take(4).foreach(println)
+	# (1,a)
+	# (1,b)
+	# (2,a)
+	# (2,b)
+	zip
+	zipWithIndex
+	groupBy # 例如结果: res13: (String, Iterable[Cus]) = (ko,CompactBuffer(Cus(12,ko)))
+	keyBy   # 例如结果: res16: (Int, Cus) = (12,Cus(12,ko)) #key是单一的,重复的key将被去除(注意与groupBy的区别)
+	sortBy
+	pipe	# The pipe method allows you to execute an external program in a forked process
+	randomSplit
+	# 例子:
+	#val numbers = sc.parallelize((1 to 100).toList)
+	#val splits = numbers.randomSplit(Array(0.6, 0.2, 0.2))
+	coalesce	# 合并分区
+	#val numbers = sc.parallelize((1 to 100).toList)
+	#val numbersWithOnePartition = numbers.coalesce(1)
+	repartition	#重新分区
+	sample		第一个boolean表示是否覆盖
+	#val sampleNumbers = numbers.sample(true, 0.2)
+	
+
+
+
+
+

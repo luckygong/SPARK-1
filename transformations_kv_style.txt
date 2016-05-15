@@ -1,0 +1,20 @@
+
+常用的操作kv函数
+
+keys	#kvRdd.keys
+values  #kvRdd.values
+mapValues
+join	#第一个元素作为key的内联接
+#例如:
+#val pairRdd1 = sc.parallelize(List(("a", 1), ("b",2), ("c",3)))
+#val pairRdd2 = sc.parallelize(List(("b", "second"), ("c","third"), ("d","fourth")))
+#val joinRdd = pairRdd1.join(pairRdd2)
+#scala> joinRdd.first
+#res21: (String, (Int, String)) = (b,(2,second))
+leftOuterJoin #左边一定存在数据,右边维option
+rightOuterJoin
+fullOuterJoin #两边均为option
+sampleByKey   # 通过key采样  pairRdd.sampleByKey(true, Map("a"-> 0.1, "b"->0.2))
+subtractByKey
+groupByKey
+reduceByKey

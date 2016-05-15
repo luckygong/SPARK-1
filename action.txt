@@ -1,0 +1,40 @@
+常用的action函数
+
+1.Action在普通元素中
+
+(This method should be used with caution since it moves data from all 
+the worker nodes to the driver program)
+
+collect
+count
+countByValue	#计算各个元素的个数
+first
+max
+min
+take
+takeOrdered		#返回最小的N个数据
+top
+fold
+reduce
+
+1.Action在k,v元素中
+
+countByKey
+lookup
+
+3.Action在数值类型中
+
+mean
+stdev # 标准偏差
+sum
+variance
+
+
+4.保存RDD
+
+saveAsTextFile
+saveAsObjectFile
+saveAsSequenceFile
+
+
+
