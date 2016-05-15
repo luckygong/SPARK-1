@@ -1,0 +1,16 @@
+Classification
+	#Logistic Regression
+	#Support Vector Machine (SVM)
+	#Naïve Bayes
+	#Decision Trees
+	#Ensembles
+	#Neural Network
+Regression
+	#Linear Regression
+	#Isotonic Regression
+	#Decision Trees
+	#Ensembles
+Clustering
+Anomaly detection
+Recommendation
+Dimensionality reduction
