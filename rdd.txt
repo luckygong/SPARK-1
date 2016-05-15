@@ -1,0 +1,1 @@
+Spark uses RDD lineage information to recompute lost cached partitions

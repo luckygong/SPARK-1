@@ -1,0 +1,45 @@
+
+
+1.Broadcast Variables
+
+例子:
+/*
+Using broadcast variables, we instructed Spark to send customer and item data to each 
+node only once and replaced an expensive join operation with a simple map operation.
+*/
+
+case class Transaction(id: Long, custId: Int, itemId: Int)
+case class TransactionDetail(id: Long, custName: String, itemName: String)
+
+val customerMap = Map(1 -> "Tom", 2 -> "Harry")
+val itemMap = Map(1 -> "Razor", 2 -> "Blade")
+val transactions = sc.parallelize(List(Transaction(1, 1, 1), Transaction(2, 1, 2)))
+val bcCustomerMap = sc.broadcast(customerMap)
+val bcItemMap = sc.broadcast(itemMap)
+
+val transactionDetails = transactions.map{t => 
+TransactionDetail(t.id, bcCustomerMap.value(t.custId), bcItemMap.value(t.itemId))}
+transactionDetails.collect
+
+2.Accumulators
+
+例子:
+/*
+In addition, the update statements are not executed until an RDD action method is called
+*/
+
+case class Customer(id: Long, name: String)
+val customers = sc.parallelize(List(
+Customer(1, "Tom"),
+Customer(2, "Harry"),
+Customer(-1, "Paul")))
+
+val badIds = sc.accumulator(0, "Bad id accumulator")
+val validCustomers = customers.filter(c => if (c.id < 0) {
+		badIds += 1
+		false
+	} else true
+)
+val validCustomerIds = validCustomers.count
+val invalidCustomerIds = badIds.value
+
