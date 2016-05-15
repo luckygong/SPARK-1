@@ -1,0 +1,35 @@
+val lines = sc.textFile("hdfs://127.0.0.1:9000/test/iris/iris.data")
+lines.persist()
+val nonEmpty = lines.filter(_.nonEmpty)
+val parsed = nonEmpty map {_.split(",")}
+
+val distinctSpecies = parsed.map{a => a(4)}.distinct.collect
+val textToNumeric = distinctSpecies.zipWithIndex.toMap
+
+import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
+
+val labeledPoints = parsed.map{a =>
+	LabeledPoint(textToNumeric(a(4)),Vectors.dense(a(0).toDouble, a(1).toDouble, a(2).toDouble, a(3).toDouble))
+}
+
+val dataSplits = labeledPoints.randomSplit(Array(0.8, 0.2))
+val trainingData = dataSplits(0)
+val testData = dataSplits(1)
+
+import org.apache.spark.mllib.classification.NaiveBayes
+// NaiveBayes ¸ÅÂÊËã·¨
+val model = NaiveBayes.train(trainingData)
+
+val predictionsAndLabels = testData.map{d => (model.predict(d.features), d.label)}
+
+//MulticlassMetrics ÆÀ²â
+
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
+val metrics = new MulticlassMetrics(predictionsAndLabels)
+
+val recall = metrics.recall
+val precision = metrics.precision
+
+val fMeasure = metrics.fMeasure
+

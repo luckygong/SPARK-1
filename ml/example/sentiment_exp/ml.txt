@@ -1,0 +1,88 @@
+
+//Our goal is to train a predictive model that predicts whether a sentence has a positive or negative sentiment
+
+
+
+val lines = sc.textFile("hdfs://127.0.0.1:9000/test/sentiment/imdb_labelled.txt")
+lines.persist()
+
+val columns = lines.map{_.split("\\t")}
+
+//装换成DF
+import sqlContext.implicits._
+case class Review(text: String, label: Double)
+val reviews = columns.map{a => Review(a(0),a(1).toDouble)}.toDF()
+
+//reviews.printSchema
+//reviews.groupBy("label").count.show
+
+val Array(trainingData, testData) = reviews.randomSplit(Array(0.8, 0.2))
+trainingData.count
+testData.count
+
+
+import org.apache.spark.ml.feature.Tokenizer
+val tokenizer = new Tokenizer().setInputCol("text").setOutputCol("words")
+val tokenizedData = tokenizer.transform(trainingData)
+
+//feature Vector to represent a sentence.
+import org.apache.spark.ml.feature.HashingTF
+val hashingTF = new HashingTF().setNumFeatures(1000).setInputCol(tokenizer.getOutputCol).setOutputCol("features")
+//transform获取transform的结果
+val hashedData = hashingTF.transform(tokenizedData)
+
+import org.apache.spark.ml.classification.LogisticRegression
+val lr = new LogisticRegression().setMaxIter(10).setRegParam(0.01)
+
+//Now we have all the parts that we need to assemble a machine learning pipeline.
+import org.apache.spark.ml.Pipeline
+
+//################
+val pipeline = new Pipeline().setStages(Array(tokenizer, hashingTF, lr))
+//################
+
+val pipeLineModel = pipeline.fit(trainingData)
+
+//Evaluate how the generated model performs
+val testPredictions = pipeLineModel.transform(testData)
+val trainingPredictions = pipeLineModel.transform(trainingData)
+
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
+val evaluator = new BinaryClassificationEvaluator()
+
+import org.apache.spark.ml.param.ParamMap
+val evaluatorParamMap = ParamMap(evaluator.metricName -> "areaUnderROC")
+
+//AUC评估
+val aucTraining = evaluator.evaluate(trainingPredictions, evaluatorParamMap)
+val aucTest = evaluator.evaluate(testPredictions, evaluatorParamMap)
+
+//可以发现aucTest很差
+
+//使用hyperparameters选择更好的参数
+//grid. As mentioned earlier, using a CrossValidator to do a grid 
+//search can be expensive in terms of CPU time 但很值得!省去手动选择参数
+
+import org.apache.spark.ml.tuning.ParamGridBuilder
+val paramGrid = new ParamGridBuilder()
+	.addGrid(hashingTF.numFeatures, Array(10000, 100000))
+	.addGrid(lr.regParam, Array(0.01, 0.1, 1.0))
+	.addGrid(lr.maxIter, Array(20, 30))
+	.build()
+
+//交叉验证
+import org.apache.spark.ml.tuning.CrossValidator
+val crossValidator = new CrossValidator()
+	.setEstimator(pipeline)
+	.setEstimatorParamMaps(paramGrid)
+	.setNumFolds(10)
+	.setEvaluator(evaluator)
+	
+val crossValidatorModel = crossValidator.fit(trainingData)	
+
+//测试
+val newPredictions = crossValidatorModel.transform(testData)
+val newAucTest = evaluator.evaluate(newPredictions, evaluatorParamMap)
+
+//得到最佳Model
+val bestModel = crossValidatorModel.bestModel
