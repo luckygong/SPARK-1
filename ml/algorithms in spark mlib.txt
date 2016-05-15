@@ -1,0 +1,78 @@
+
+目前spark mlib具有的算法
+
+1.
+
+==Regression Algorithms
+#LinearRegressionWithSGD
+#RidgeRegressionWithSGD
+#LassoWithSGD
+#ElasticNetRegression
+#IsotonicRegression
+#DecisionTree
+#GradientBoostedTrees
+#RandomForest
+
+^train 训练回归模型 with LabeledPoint
+^trainRegressor 训练tree-based模型
+
+==Regression Models
+#LinearRegressionModel
+#RidgeRegressionModel
+#LassoModel
+#IsotonicRegressionModel
+#DecisionTreeModel
+#GradientBoostedTreesModel
+#RandomForestModel
+
+
+2.
+
+==Classification Algorithms
+#LogisticRegressionWithSGD
+#LogisticRegressionWithLBFGS
+#SVMWithSGD
+#NaiveBayes
+#DecisionTree
+#GradientBoostedTrees
+#RandomForest
+
+^train 训练线型模型LabeledPoint and algorithm-specific
+^trainClassifier 训练tree-based模型
+
+==Classification Models
+#LogisticRegressionModel
+#NaiveBayesModel
+#SVMModel
+#DecisionTreeModel
+#GradientBoostedTreesModel
+#RandomForestModel
+
+
+3.
+
+==Clustering Algorithms
+#KMeans
+#StreamingKMeans
+#GaussianMixture
+#LDA
+#PowerIterationClustering
+
+^train 训练tree-based模型指定算法
+^run   训练tree-based模型指定算法
+
+==Clustering Models
+#KMeansModel
+#GaussianMixtureModel
+#PowerIterationClusteringModel
+#StreamingKMeansModel
+#DistributedLDAModel
+ 
+4.
+
+==Recommendation Algorithms
+
+#collaborative filtering (using the ALS Algorithms)
+
+^train
+^trainImplicit
