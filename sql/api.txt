@@ -1,0 +1,182 @@
+
+创建DataFrame
+
+1.
+The Spark SQL API consists of three key abstractions: 
+SQLContext
+HiveContext
+DataFrame
+
+2.
+SQLContext
+
+(1).创建SQLContext实例
+
+import org.apache.spark._
+import org.apache.spark.sql._
+val config = new SparkConf().setAppName("My Spark SQL app")
+val sc = new SparkContext(config)
+val sqlContext = new SQLContext(sc)
+
+(2).Executing SQL Queries Programmatically
+
+val resultSet = sqlContext.sql("SELECT count(1) FROM my_table")
+
+3.
+HiveContext
+(
+add your hive-site.xml file to Spark’s classpath, since 
+HiveContext reads Hive configuration from the hive-site.xml
+)
+
+(1).创建HiveContext实例
+
+import org.apache.spark._
+import org.apache.spark.sql._
+import org.apache.spark.sql.hive._
+
+val config = new SparkConf().setAppName("My Spark SQL app")
+val sc = new SparkContext(config)
+val hiveContext = new HiveContext(sc)
+
+(2).Executing HiveQL Queries Programmatically
+
+val resultSet = hiveContext.sql("SELECT count(1) FROM my_hive_table")
+
+4.
+DataFrame
+
+(1).Row
+
+import org.apache.spark.sql._
+val row1 = Row("Barack Obama", "President", "United States")
+val row2 = Row("David Cameron", "Prime Minister", "United Kingdom")
+
+(2).Creating DataFrames(两种方式,RDD或者DataSource)
+
+==1.从RDD中创建DataFrame
+
+val sqlContext = new org.apache.spark.sql.SQLContext(sc)
+import sqlContext.implicits._
+
+case class Employee(name: String, age: Int, gender: String)
+
+val rowsRDD = sc.textFile("path/to/employees.csv")
+val employeesRDD = rowsRDD.map{row => row.split(",")}
+	.map{cols => Employee(cols(0), cols(1).trim.toInt, cols(2))}
+val employeesDF = employeesRDD.toDF()
+
+
+==2.createDataFrame #Both the SQLContext and HiveContext classes provide a method named createDataFrame
+
+val sqlContext = new SQLContext(sc)
+val linesRDD = sc.textFile("path/to/employees.csv")
+val rowsRDD = linesRDD.map{row => row.split(",")}
+	.map{cols => Row(cols(0), cols(1).trim.toInt, cols(2))}
+
+val schema = StructType(List(
+	StructField("name", StringType, false),
+	StructField("age", IntegerType, false),
+	StructField("gender", StringType, false)
+))
+
+val employeesDF = sqlContext.createDataFrame(rowsRDD,schema)
+
+==3.从数据源中创建DataFrame
+
+val sqlContext = new org.apache.spark.sql.hive.HiveContext (sc)
+
+// create a DataFrame from parquet files
+val parquetDF = sqlContext.read
+	.format("org.apache.spark.sql.parquet")
+	.load("path/to/Parquet-file-or-directory")
+	
+// create a DataFrame from JSON files
+val jsonDF = sqlContext.read
+	.format("org.apache.spark.sql.json")
+	.load("path/to/JSON-file-or-directory")
+	
+// 从Postgres创建DataFrame
+val jdbcDF = sqlContext.read
+	.format("org.apache.spark.sql.jdbc")
+	.options(Map(
+			"url" -> "jdbc:postgresql://host:port/database?user=<USER>&password=<PASS>",
+			"dbtable" -> "schema-name.table-name"))
+	.load()
+	
+// 从Hive中创建DataFrame
+val hiveDF = sqlContext.read
+	.table("hive-table-name")
+	
+// json格式
+// The input JSON files must have one JSON object per line. Spark SQL will fail to read a 
+// JSON file with multi-line JSON objects
+// Spark SQL automatically infers the schema of a JSON dataset
+val jsonDF = sqlContext.read.json("path/to/JSON-file-or-directory")
+val jsonHdfsDF = sqlContext.read.json("hdfs://NAME_NODE/path/to/data.json")
+val jsonS3DF = sqlContext.read.json("s3a://BUCKET_NAME/FOLDER_NAME/data.json")
+
+//或者指定schema
+import org.apache.spark.sql.types._
+val userSchema = StructType(List(
+	StructField("name", StringType, false),
+	StructField("age", IntegerType, false),
+	StructField("gender", StringType, false)
+))
+//制定Schema
+val userDF = sqlContext.read
+	.schema(userSchema)
+	.json("path/to/user.json")
+
+//Parquet格式
+val parquetDF = sqlContext.read.parquet("path/to/parquet-file-or-directory")
+val parquetHdfsDF = sqlContext.read.parquet("hdfs://NAME_NODE/path/to/data.parquet")
+val parquetS3DF = sqlContext.read.parquet("s3a://BUCKET_NAME/FOLDER_NAME/data.parquet")
+
+//ORC格式
+val orcDF = hiveContext.read.orc("path/to/orc-file-or-directory")	
+val orcHdfsDF = sqlContext.read.orc("hdfs://NAME_NODE/path/to/data.orc")
+val orcS3DF = sqlContext.read.orc("s3a://BUCKET_NAME/FOLDER_NAME/data.orc")
+
+//Hive格式
+val hiveDF = hiveContext.read.table("hive-table-name")
+val hiveDF = hiveContext.sql("SELECT col_a, col_b, col_c from hive-table")
+
+//**jdbc格式
+
+val jdbcUrl ="jdbc:mysql://host:port/database"
+val tableName = "table-name"
+val connectionProperties = new java.util.Properties
+connectionProperties.setProperty("user","database-user-name")
+connectionProperties.setProperty("password"," database-user-password")
+val jdbcDF = hiveContext.read
+	.jdbc(jdbcUrl, tableName, connectionProperties)
+	
+//**可以直接指定字段
+val predicates = Array("country='Germany'")
+val usersGermanyDF = hiveContext.read
+	.jdbc(jdbcUrl, tableName, predicates, connectionProperties)
+
+5.
+DataFrame
+
+内置方法简单预览,下次继续
+
+agg                 apply               as                  asInstanceOf
+cache               coalesce            col                 collect
+collectAsList       columns             count               createJDBCTable
+cube                describe            distinct            drop
+dropDuplicates      dtypes              except              explain
+explode             filter              first               flatMap
+foreach             foreachPartition    groupBy             head
+inputFiles          insertInto          insertIntoJDBC      intersect
+isInstanceOf        isLocal             javaRDD             join
+limit               map                 mapPartitions       na
+orderBy             persist             printSchema         queryExecution
+randomSplit         rdd                 registerTempTable   repartition
+rollup              sample              save                saveAsParquetFile
+saveAsTable         schema              select              selectExpr
+show                sort                sqlContext          stat
+take                toDF                toJSON              toJavaRDD
+toSchemaRDD         toString            unionAll            unpersist
+where               withColumn          withColumnRenamed   write

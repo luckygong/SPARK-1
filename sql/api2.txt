@@ -1,0 +1,190 @@
+
+操作DataFrame
+
+1.创建临时表
+
+import org.apache.spark.sql.types._
+val userSchema = StructType(List(
+	StructField("name", StringType, false),
+	StructField("age", IntegerType, false),
+	StructField("gender", StringType, false)
+))
+val userDF = sqlContext.read
+	.schema(userSchema)
+	.json("path/to/user.json")
+
+userDF.registerTempTable("user")
+
+val cntDF = hiveContext.sql("SELECT count(1) from user")
+val cntByGenderDF = hiveContext.sql("SELECT gender, count(1) as cnt FROM user GROUP BY gender ORDER BY cnt")
+
+
+2.处理DataFrame的API
+import sqlContext.implicits._
+case class Customer(cId: Long, name: String, age: Int, gender: String)
+val customers = List(Customer(1, "James", 21, "M"),
+					 Customer(2, "Liz", 25, "F"),
+					 Customer(3, "John", 31, "M"),
+					 Customer(4, "Jennifer", 45, "F"),
+					 Customer(5, "Robert", 41, "M"),
+					 Customer(6, "Sandra", 45, "F"))
+						
+val customerDF = sc.parallelize(customers).toDF()
+ 
+case class Product(pId: Long, name: String, price: Double, cost: Double)
+val products = List(Product(1, "iPhone", 600, 400),
+					Product(2, "Galaxy", 500, 400),
+					Product(3, "iPad", 400, 300),
+					Product(4, "Kindle", 200, 100),
+					Product(5, "MacBook", 1200, 900),
+					Product(6, "Dell", 500, 400))
+					
+val productDF = sc.parallelize(products).toDF()
+
+case class Home(city: String, size: Int, lotSize: Int,bedrooms: Int, bathrooms: Int, price: Int)
+
+val homes = List(	Home("San Francisco", 1500, 4000, 3, 2, 1500000),
+					Home("Palo Alto", 1800, 3000, 4, 2, 1800000),
+					Home("Mountain View", 2000, 4000, 4, 2, 1500000),
+					Home("Sunnyvale", 2400, 5000, 4, 3, 1600000),
+					Home("San Jose", 3000, 6000, 4, 3, 1400000),
+					Home("Fremont", 3000, 7000, 4, 3, 1500000),
+					Home("Pleasanton", 3300, 8000, 4, 3, 1400000),
+					Home("Berkeley", 1400, 3000, 3, 3, 1100000),
+					Home("Oakland", 2200, 6000, 4, 3, 1100000),
+					Home("Emeryville", 2500, 5000, 4, 3, 1200000))
+					
+val homeDF = sc.parallelize(homes).toDF
+
+
+2.基本操作
+
+(1).cache
+
+sqlContext.setConf("spark.sql.inMemoryColumnarStorage.compressed", "true")
+sqlContext.setConf("spark.sql.inMemoryColumnarStorage.batchSize", "10000")
+
+(2).columns
+(3).dtypes
+(4).explain
+(5).persist # caches the source DataFrame in memory
+(6).printSchema
+(7).registerTempTable # creates a temporary table in Hive metastore. 
+#customerDF.registerTempTable("customer")
+#val countDF = sqlContext.sql("SELECT count(1) AS cnt FROM customer")
+(8).toDF
+#val resultDF = sqlContext.sql("SELECT count(1) from customer")
+#val countDF = resultDF.toDF("cnt")
+
+
+3.查询集成方法
+==(1).agg		#聚合
+
+val aggregates = productDF.agg(max("price"), min("price"), count("name"))
+
+==(2).apply	#返回字段
+val priceColumn = productDF.apply("price") #priceColumn: org.apache.spark.sql.Column = price
+或者
+val priceColumn = productDF("price")
+
+^使用
+val aggregates = productDF.agg(max(productDF("price")), min(productDF("price")),count(productDF("name")))
+或者
+val aggregates = productDF.agg(max($"price"), min($"price"), count($"name"))
+
+==(3).cube	#The cube method takes the names of one or more columns as arguments and returns a cube 
+			for multi-dimensional analysis.
+
+例子:
+case class SalesSummary(date: String, product: String, country: String, revenue: Double)
+val sales = List(SalesSummary("01/01/2015", "iPhone", "USA", 40000),
+	SalesSummary("01/02/2015", "iPhone", "USA", 30000),
+	SalesSummary("01/01/2015", "iPhone", "China", 10000),
+	SalesSummary("01/02/2015", "iPhone", "China", 5000),
+	SalesSummary("01/01/2015", "S6", "USA", 20000),
+	SalesSummary("01/02/2015", "S6", "USA", 10000),
+	SalesSummary("01/01/2015", "S6", "China", 9000),
+	SalesSummary("01/02/2015", "S6", "China", 6000))
+
+val salesDF = sc.parallelize(sales).toDF()
+# 找出所有的组合(可以用于聚合)
+val salesCubeDF = salesDF.cube($"date", $"product", $"country").sum("revenue")
+salesCubeDF.withColumnRenamed("sum(revenue)", "total").show(30)
+# 过滤数据
+salesCubeDF.filter("date IS null AND product IS NOT null AND country='USA'").show
+
+==(4).distinct
+
+==(5).explode	#The explode method generates zero or more rows from a column using a user-provided function
+例子:
+case class Email(sender: String, recepient: String, subject: String, body: String)
+val emails = List(	Email("James", "Mary", "back", "just got back from vacation"),
+					Email("John", "Jessica", "money", "make million dollars"),
+					Email("Tim", "Kevin", "report", "send me sales report ASAP"))
+val emailDF = sc.parallelize(emails).toDF()
+val wordDF = emailDF.explode("body", "word") { body: String => body.split(" ")}
+wordDF.show
+
+==(6).filter
+
+==(7).groupBy
+# val revenueByProductDF = salesDF.groupBy("product").sum("revenue")
+
+==(8).intersect # 交集
+
+==(9).join
+例子:
+case class Transaction(tId: Long, custId: Long, prodId: Long, date: String, city: String)
+val transactions = List(Transaction(1, 5, 3, "01/01/2015", "San Francisco"),
+						Transaction(2, 6, 1, "01/02/2015", "San Jose"),
+						Transaction(3, 1, 6, "01/01/2015", "Boston"),
+						Transaction(4, 200, 400, "01/02/2015", "Palo Alto"),
+						Transaction(6, 100, 100, "01/02/2015", "Mountain View"))
+val transactionDF = sc.parallelize(transactions).toDF()
+# inner outer left_outer(#以左边作为基准,所以右边可能为空) right_outer(#以右边作为基准,所以左边可能为空)
+val innerDF = transactionDF.join(customerDF, $"custId" === $"cId", "inner")
+innerDF.show
+
+==(10).limit
+
+==(11).orderBy
+
+==(12).randomSplit
+
+==(13).rollup #The rollup method takes the names of one or more columns as arguments 
+			   and returns a multi-dimensional rollup
+例子:
+case class SalesByCity(year: Int, city: String, state: String,
+country: String, revenue: Double)
+val salesByCity = List(SalesByCity(2014, "Boston", "MA", "USA", 2000),
+	SalesByCity(2015, "Boston", "MA", "USA", 3000),
+	SalesByCity(2014, "Cambridge", "MA", "USA", 2000),
+	SalesByCity(2015, "Cambridge", "MA", "USA", 3000),
+	SalesByCity(2014, "Palo Alto", "CA", "USA", 4000),
+	SalesByCity(2015, "Palo Alto", "CA", "USA", 6000),
+	SalesByCity(2014, "Pune", "MH", "India", 1000),
+	SalesByCity(2015, "Pune", "MH", "India", 1000),
+	SalesByCity(2015, "Mumbai", "MH", "India", 1000),
+	SalesByCity(2014, "Mumbai", "MH", "India", 2000))
+
+val salesByCityDF = sc.parallelize(salesByCity).toDF()
+val rollup = salesByCityDF.rollup($"country", $"state", $"city").sum("revenue")
+rollup.show
+
+==(14).sample #第一个参数表示是否覆盖,第二个表示返回的比例
+val sampleDF = homeDF.sample(true, 0.10)
+
+==(15).select
+val namesAgeDF = customerDF.select("name", "age")
+
+==(16).selectExpr
+val newCustomerDF = customerDF.selectExpr("name", "age + 10 AS new_age","IF(gender = 'M', true, false) AS male")
+
+==(17).withColumn # adds a new column to or replaces an existing column in the source DataFrame 
+#first argument is the name of the new column
+#second argument is an expression for generating the values of the new column.
+
+val newProductDF = productDF.withColumn("profit", $"price" - $"cost")
+newProductDF.show
+
+
