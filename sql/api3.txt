@@ -1,3 +1,115 @@
 
-操作RDD
+操作DataFrame to RDD 以及 Action
 
+
+常用的rdd方法
+
+map, flatMap, foreach,foreachPartition
+mapPartition, coalesce, repartition
+
+
+RDD:
+rdd is defined as a lazy val in the DataFrame class. It represents the source DataFrame 
+as an RDD of Row instances.
+
+1.Generating an RDD from a DataFrame
+
+(1).
+val rdd = customerDF.rdd
+val firstRow = rdd.first
+val name = firstRow.getString(1)
+val age = firstRow.getInt(2)
+
+(2).
+import org.apache.spark.sql.Row
+val rdd = customerDF.rdd
+val nameAndAge = rdd.map {
+	case Row(cId: Long, name: String, age: Int, gender: String) => (name, age)
+}
+nameAndAge.collect
+
+2.toJSON
+
+val jsonRDD = customerDF.toJSON
+
+
+##
+Actions 
+
+The action methods in the DataFrame class return results to the Driver program.
+
+1.collect
+2.count
+3.describe
+4.first
+5.show
+6.take
+
+##
+Output Operations
+
+1.write
+The write method returns an instance of the DataFrameWriter class, which provides 
+methods for saving the contents of a DataFrame to a data source
+
+2.saving a DataFrame
+
+// save a DataFrame in JSON format
+customerDF.write
+	.format("org.apache.spark.sql.json")
+	.save("path/to/output-directory")
+	
+// save a DataFrame in Parquet format
+homeDF.write
+	.format("org.apache.spark.sql.parquet")
+	.partitionBy("city")
+	.save("path/to/output-directory")
+	
+// save a DataFrame in ORC file format
+homeDF.write
+	.format("orc")
+	.partitionBy("city")
+	.save("path/to/output-directory")
+	
+// save a DataFrame as a Postgres database table
+df.write
+	.format("org.apache.spark.sql.jdbc")
+	.options(Map(
+	"url" -> "jdbc:postgresql://host:port/database?user=<USER>&password=<PASS>",
+	"dbtable" -> "schema-name.table-name"))
+	.save()
+	
+// save a DataFrame to a Hive table
+df.write.saveAsTable("hive-table-name")
+
+//****以分区的方式保存
+homeDF.write
+	.format("parquet")
+	.partitionBy("city")
+	.save("homes")
+//****以分区的方式读取
+val newHomesDF = sqlContext.read.format("parquet").load("homes")
+newHomesDF.registerTempTable("homes")
+val homesInBerkeley = sqlContext.sql("SELECT * FROM homes WHERE city = 'Berkeley'")
+
+3.JSON
+customerDF.write.json("path/to/directory")
+
+4.Parquet
+customerDF.write.parquet("path/to/directory")
+
+5.ORC
+customerDF.write.orc("path/to/directory")
+
+6.Hive
+customerDF.write.saveAsTable("hive-table-name")
+
+7.JDBC-Compliant Database
+
+val jdbcUrl ="jdbc:mysql://host:port/database"
+val tableName = "table-name"
+val connectionProperties = new java.util.Properties
+connectionProperties.setProperty("user","database-user-name")
+connectionProperties.setProperty("password"," database-user-password")
+customerDF.write.jdbc(jdbcUrl, tableName, connectionProperties)
+ 

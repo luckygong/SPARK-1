@@ -1,0 +1,27 @@
+
+Spark SQL内建方法
+
+The built-in functions can be used from both the DataFrame API and SQL interface
+
+
+import org.apache.spark.sql.functions._
+
+1.Aggregate
+
+approxCountDistinct, avg, count, countDistinct, 
+first, last, max, mean, min, sum, sumDistinct
+
+val minPrice = homeDF.select(min($"price"))
+minPrice.show
+
+2.Collection
+
+3.Date/Time
+
+4.Math
+
+5.String
+
+6.
+
+

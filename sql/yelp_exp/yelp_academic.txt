@@ -1,0 +1,96 @@
+
+1.加载数据
+val biz = sqlContext.read.json("hdfs://localhost:9000/test/yelp_academic_dataset_business.json")
+//ro
+val biz = sqlContext.read.format("json").load("hdfs://localhost:9000/test/yelp_academic_dataset_business.json")
+
+2.查看schema
+biz.printSchema()
+
+3.缓存先
+biz.cache()
+
+4.缓存在表中
+biz.registerTempTable("biz")
+sqlContext.cacheTable("biz")
+
+5.操作
+==1
+val count = biz.count()
+
+==2
+sqlContext.sql("SELECT count(1) as businesses FROM biz").show
+
+==3
+//Language-Integrated Query (推荐使用这种方法,可以更容易发现错误)
+val bizCountByState = biz.groupBy("state").count
+bizCountByState.show(50)
+
+//SQL
+sqlContext.sql("SELECT state, count(1) as businesses FROM biz GROUP BY state").show(50)
+
+==4
+val resultDF = biz.groupBy("state").count
+resultDF.orderBy($"count".desc).show(5)
+//SQL
+sqlContext.sql("SELECT state, count(1) as businesses FROM biz GROUP BY state ORDER BY businesses DESC").show(5)
+
+==5
+biz.filter(biz("stars") <=> 5.0).select("name","stars", "review_count", "city", "state").show(5)
+//SQL
+sqlContext.sql("SELECT name, stars, review_count, city, state FROM biz WHERE stars=5.0").show(5)
+
+==6
+biz.filter($"stars" <=> 5.0 && $"state" <=> "NV")
+.select("name","stars", "review_count", "city", "state")
+.show(3)
+//SQL
+sqlContext.sql("SELECT name, stars, review_count, city, state FROM biz WHERE state = 'NV' AND stars = 5.0").show(3)
+
+==7
+biz.groupBy("state").sum("review_count").show()
+//SQL
+sqlContext.sql("SELECT state, sum(review_count) as reviews FROM biz GROUP BY state").show()
+
+==8
+biz.groupBy("stars").count.show()
+//SQL
+sqlContext.sql("SELECT stars, count(1) as businesses FROM biz GROUP BY stars").show()
+
+==9
+val avgReviewsByState = biz.groupBy("state").avg("review_count")
+avgReviewsByState.show()
+//SQL
+sqlContext.sql("SELECT state, AVG(review_count) as avg_reviews FROM biz GROUP BY state").show()
+
+==10
+biz.groupBy("state")
+.avg("review_count")
+.withColumnRenamed("AVG(review_count)", "rc")
+.orderBy($"rc".desc)
+.selectExpr("state", "ROUND(rc) as avg_reviews")
+.show(5)
+
+//SQL
+sqlContext.sql("SELECT state, ROUND(AVG(review_count)) as avg_reviews FROM biz GROUP BY
+state ORDER BY avg_reviews DESC LIMIT 5").show()
+
+
+==11
+biz.filter($"city" === "Las Vegas")
+.sort($"stars".desc, $"review_count".desc)
+.select($"name", $"stars", $"review_count")
+.show(5)
+
+//SQL
+sqlContext.sql("SELECT name, stars, review_count FROM biz WHERE city = 'Las Vegas' ORDER BY
+stars DESC, review_count DESC LIMIT 5 ").show
+
+
+6.保存
+
+biz.write.mode("overwrite").parquet("path/to/yelp_business.parquet")
+val ybDF = sqlContext.read.parquet("path/to/yelp_business.parquet")
+
+
+

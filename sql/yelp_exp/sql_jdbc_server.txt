@@ -1,0 +1,19 @@
+
+1.开启 Thrift/JDBC/ODBC
+path/to/spark/sbin/start-thriftserver.sh --master local[*]
+
+2.客户端
+path/to/spark/bin/beeline
+
+3.连接
+beeline>!connect jdbc:hive2://localhost:10000
+
+4.
+beeline>CREATE TEMPORARY TABLE biz USING org.apache.spark.sql.json OPTIONS (path "path/to/yelp_academic_dataset_business.json");
+
+5.
+SHOW TABLES;
+SELECT count(1) from biz;
+SELECT state, count(1) as cnt FROM biz GROUP BY state ORDER BY cnt DESC LIMIT 5;
+SELECT state, count(1) as businesses, sum(review_count) as reviews FROM biz GROUP BY state ORDER BY businesses DESC LIMIT 5;
+SELECT name, review_count, stars, city, state from biz WHERE stars = 5.0 ORDER BY review_count DESC LIMIT 5;
