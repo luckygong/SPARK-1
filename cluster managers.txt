@@ -1,0 +1,58 @@
+
+单机的两种部署方法:
+1.
+Client Mode//默认
+//以客户进程的方式部署到集群中
+It is recommended to use the client deployment mode only if the client machine is on the same network
+as the Spark cluster. 
+
+$ /path/to/spark/bin/spark-submit --deploy-mode client \
+	--master <master-URL> \
+	</path/to/app-jar> [app-arguments]
+	
+2.
+Cluster Mode
+//发送消息给master寻找其中一个,worknode来部署驱动程序
+//无法直接从控制台查看log
+It is recommended to use the cluster mode if the machine from where you deploy a Spark application
+is not on the same network as the Spark cluster. 
+
+$ /path/to/spark/bin/spark-submit --deploy-mode cluster \
+	--master <master-URL> \
+	</path/to/app-jar> [app-arguments]
+
+$ /path/to/spark/bin/spark-submit --status <submission-id>
+$ /path/to/spark/bin/spark-submit --kill <submission-id>
+ 
+//当遇到non-zero符号时,让驱动程序自动停止
+$ /path/to/spark/bin/spark-submit --deploy-mode cluster --supervise \
+	--master <master-URL> \
+	</path/to/app-jar> [app-arguments]
+	
+	
+//YARN要点	
+3.
+YARN:three key components
+
+client application,
+ApplicationMaster,
+containers
+
+//The ApplicationMaster negotiates the containers required to execute a job with the ResourceManager.
+ResourceManager:two key components 
+ApplicationsManager
+Scheduler
+
+
+YARN的两种部署方法:
+
+(1).cluster mode
+/path/to/spark/bin/spark-submit --class path.to.main.Class --master yarn-cluster </path/to/app-jar> [app-args]
+
+(2).client mode
+/path/to/spark/bin/spark-submit --class path.to.main.Class --master yarn-client </path/to/app-jar> [app-args]
+
+
+
+
+
