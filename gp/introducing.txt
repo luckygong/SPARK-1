@@ -1,0 +1,37 @@
+
+1.Data Abstractions
+VertexRDD
+Edge
+EdgeRDD
+EdgeTriple
+Graph
+
+
+2.VertexRDD
+Each vertex is represented by a key-value pair, where the key is a unique id and value is the data
+associated with a vertex.
+
+3.Edge
+#The Edge class abstracts a directed edge in a property graph
+#An instance of the Edge class contains source vertex id, destination 
+#vertex id and edge attributes
+
+4.EdgeRDD
+EdgeRDD represents a distributed collection of the edges in a property graph
+
+5.EdgeTriplet
+An instance of the EdgeTriplet class represents a combination of an edge and the two vertices
+
+6.EdgeContext
+The EdgeContext class combines EdgeTriplet with methods to send messages to source and 
+destination vertices of an edge
+
+7.Graph
+#Graph is GraphX’s abstraction for representing property graphs
+#It recreates a partition on a different machine if a machine fails.
+
+#The Graph class provides methods for modifying not only the vertex and edge attributes 
+but also the structure of a property graph
+
+
+

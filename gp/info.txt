@@ -1,0 +1,15 @@
+图运算的相关知识:
+
+	A key benefit of using GraphX is that it provides an integrated platform for complete graph 
+analytics workflow or pipeline. 
+
+
+1.处理步骤:
+
+a) Read raw data.
+b) Preprocess data (e.g., cleanse data).
+c) Extract vertices and edges to create a property graph.
+d) Slice a subgraph.
+e) Run graph algorithms.
+f) Analyze the results.
+g) Repeat steps e and f with another slice of the graph.

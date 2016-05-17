@@ -1,0 +1,29 @@
+一.都是大学里的数据结构知识
+
+
+1.pageRank				#
+val dynamicRanksGraph = inputGraph.pageRank(0.001)
+dynamicRanksGraph.vertices.collect
+
+2.staticPageRank		#
+val staticRanksGraph = inputGraph.staticPageRank(20)
+staticRanksGraph.vertices.collect
+
+3.connectedComponents	#连同图
+val connectedComponentsGraph = inputGraph.connectedComponents()
+connectedComponentsGraph.vertices.collect
+
+#强同图
+4.stronglyConnectedComponents //A strongly connected component (SCC) of a graph is a subgraph containing vertices that are 
+							  //reachable from every other vertex in the same subgraph
+
+val sccGraph = inputGraph.stronglyConnectedComponents(20)
+sccGraph.vertices.collect
+
+
+5.triangleCount
+val triangleCountGraph = inputGraph.triangleCount()
+triangleCountGraph.vertices.collect
+
+//note:
+inputGraph 是上一节的计算结果

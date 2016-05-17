@@ -1,0 +1,170 @@
+
+1.创建图Graph
+
+import org.apache.spark.graphx._
+case class User(name: String, age: Int)
+
+val users = List((1L, User("Alex", 26)), (2L, User("Bill", 42)), (3L, User("Carol", 18)),
+				(4L, User("Dave", 16)), (5L, User("Eve", 45)), (6L, User("Farell", 30)),
+				(7L, User("Garry", 32)), (8L, User("Harry", 36)), (9L, User("Ivan", 28)),
+				(10L, User("Jill", 48)))
+val usersRDD = sc.parallelize(users)
+
+val follows = List(	Edge(1L, 2L, 1), Edge(2L, 3L, 1), Edge(3L, 1L, 1), Edge(3L, 4L, 1),
+					Edge(3L, 5L, 1), Edge(4L, 5L, 1), Edge(6L, 5L, 1), Edge(7L, 6L, 1),
+					Edge(6L, 8L, 1), Edge(7L, 8L, 1), Edge(7L, 9L, 1), Edge(9L, 8L, 1),
+					Edge(8L, 10L, 1), Edge(10L, 9L, 1), Edge(1L, 11L, 1))
+val followsRDD = sc.parallelize(follows)
+
+val defaultUser = User("NA", 0)
+
+val socialGraph = Graph(usersRDD, followsRDD, defaultUser)
+
+
+2.Graph Properties
+
+val numEdges = socialGraph.numEdges
+val numVertices = socialGraph.numVertices
+
+# 入度
+val inDegrees = socialGraph.inDegrees
+inDegrees.collect
+
+# 出度
+val outDegrees = socialGraph.outDegrees
+outDegrees.collect
+
+# 度数
+val degrees = socialGraph.degrees
+degrees.collect
+
+val vertices = socialGraph.vertices
+val edges = socialGraph.edges
+
+# triplets
+val triplets = socialGraph.triplets
+val follows = triplets.map{ t => t.srcAttr.name + " follows " + t.dstAttr.name}
+follows.take(5)
+
+3.Graph操作
+主要的操作包含:
+Property transformation
+Structure transformation
+Join
+Aggregation
+Graph-parallel computation
+Graph algorithm
+
+(1)Property Transformation Operators
+##mapVertices
+##mapEdges //applies a user-specified transformation to each edge in a property graph. Similar to
+val followsGraph = socialGraph.mapEdges( (n) => "follows")
+socialGraph.edges.take(5)
+followsGraph.edges.take(5)
+##mapTriplets
+val weightedGraph = socialGraph.mapTriplets{ t =>
+	if (t.srcAttr.age >= 30)
+		2
+	else
+	1
+}
+
+(2)Structure Transformation Operators
+##reverse  //The reverse method reverses the direction of all the edges in a property graph
+##subgraph //The subgraph method applies a user-specified filter to each vertex and edge
+val subgraph = weightedGraph.subgraph( edgeTriplet => edgeTriplet.attr > 1,(vertexId, vertexProperty) => true)
+##mask  (就是知道Edage,然后寻找id信息)//The mask method takes a graph as argument and returns a subgraph of the source graph containing all the
+		//vertices and edges in the input graph
+val femaleConnections = List(	Edge(2L, 3L, 0), Edge(3L, 1L, 0), Edge(3L, 4L, 0),
+								Edge(3L, 5L, 0), Edge(4L, 5L, 0), Edge(6L, 5L, 0),
+								Edge(8L, 10L, 0), Edge(10L, 9L, 0))
+val femaleConnectionsRDD = sc.parallelize(femaleConnections)
+val femaleGraphMask = Graph.fromEdges(femaleConnectionsRDD, defaultUser)
+val femaleGraph = socialGraph.mask(femaleGraphMask)
+##groupEdges
+val multiEdges = List(Edge(1L, 2L, 100), Edge(1L, 2L, 200),
+	Edge(2L, 3L, 300), Edge(2L, 3L, 400),
+	Edge(3L, 1L, 200), Edge(3L, 1L, 300))
+val multiEdgesRDD = sc.parallelize(multiEdges)
+val defaultVertexProperty = 1
+val multiEdgeGraph = Graph.fromEdges(multiEdgesRDD, defaultVertexProperty)
+import org.apache.spark.graphx.PartitionStrategy._
+val repartitionedGraph = multiEdgeGraph.partitionBy(CanonicalRandomVertexCut)
+val singleEdgeGraph = repartitionedGraph.groupEdges((edge1, edge2) => edge1 + edge2)
+
+(3)Join Operators
+##joinVertices  //The join operators allow you to update existing properties or add a 
+				//new property to the vertices in a graph.
+val correctAges = sc.parallelize(List((3L, 28), (4L, 26)))
+val correctedGraph = socialGraph.joinVertices(correctAges)((id, user, correctAge) =>
+	User(user.name, correctAge))
+//学会用subgraph寻找指定的部分图
+val correctedSubGraph = correctedGraph.subgraph( edgeTriplet => true,
+	(vertexId, vertexProperty) => (vertexId == 3) || (vertexId == 4))
+##outerJoinVertices	//The outerJoinVertices method adds new properties to the vertices in 
+					//the source graph
+case class UserWithCity(name: String, age: Int, city: String)
+val userCities = sc.parallelize(List((1L, "Boston"), (3L, "New York"), (5L, "London"),(7L, "Bombay"), (9L, "Tokyo"), 
+									 (10L, "Palo Alto")))
+val socialGraphWithCity = socialGraph.outerJoinVertices(userCities)((id, user, cityOpt) =>
+cityOpt match {
+	case Some(city) => UserWithCity(user.name, user.age, city)
+	case None => UserWithCity(user.name, user.age, "NA")
+})
+
+(4)Aggregation Operators //The aggregateMessages method aggregates values for each vertex from neighboring vertices 
+						 and connecting edges.
+						   
+						 //The aggregateMessages method uses the second function to aggregate all the messages sent by 
+						 the first function to a vertex
+//calculate the number of followers of each user in the example social graph.
+val followers = socialGraph.aggregateMessages[Int]( edgeContext => edgeContext.sendToDst(1), (x, y) => (x + y))
+//等于
+val followers = socialGraph.inDegrees
+
+(5)Graph-Parallel Operators
+##pregel
+val outDegrees = socialGraph.outDegrees
+val outDegreesGraph = socialGraph.outerJoinVertices(outDegrees) {(vId, vData, OptOutDegree) =>
+		OptOutDegree.getOrElse(0)
+}
+val weightedEdgesGraph = outDegreesGraph.mapTriplets{EdgeTriplet =>
+	1.0 / EdgeTriplet.srcAttr
+}
+val inputGraph = weightedEdgesGraph.mapVertices((id, vData) => 1.0)
+
+//pregel
+val firstMessage = 0.0
+val iterations = 20
+val edgeDirection = EdgeDirection.Out
+
+val updateVertex = (vId: Long, vData: Double, msgSum: Double) => 0.15 + 0.85 * msgSum
+
+val sendMsg = (triplet: EdgeTriplet[Double, Double]) => Iterator((triplet.dstId, triplet.srcAttr * triplet.attr))
+
+val aggregateMsgs = (x: Double, y: Double ) => x + y
+
+val influenceGraph = inputGraph.pregel(firstMessage, iterations, edgeDirection)(updateVertex, sendMsg, aggregateMsgs)
+
+//结果
+val userNames = socialGraph.mapVertices{(vId, vData) => vData.name}.vertices
+val userNamesAndRanks = influenceGraph.outerJoinVertices(userNames) {
+	(vId, rank, optUserName) => (optUserName.get, rank)
+}.vertices
+userNamesAndRanks.collect.foreach{ case(vId, vData) =>
+	println(vData._1 +"'s influence rank: " + vData._2)
+}
+
+//
+Dave's influence rank: 0.2546939612521768
+Harry's influence rank: 0.9733813220346056
+Alex's influence rank: 0.2546939612521768
+Ivan's influence rank: 0.9670543985781628
+Eve's influence rank: 0.47118379300959834
+Farell's influence rank: 0.1925
+Jill's influence rank: 0.9718993399637271
+Bill's influence rank: 0.25824491587871073
+NA's influence rank: 0.25824491587871073
+Carol's influence rank: 0.36950816084343974
+Garry's influence rank: 0.15
+
