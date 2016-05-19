@@ -1,0 +1,95 @@
+1.创建StreamingContext
+import org.apache.spark._
+import org.apache.spark.streaming._
+val config = new SparkConf().setMaster("spark://host:port").setAppName("big streaming app")
+val batchInterval = 10
+val ssc = new StreamingContext(config, Seconds(batchInterval))
+//
+val batchInterval = 10
+val ssc = new StreamingContext(sc, Seconds(batchInterval))
+
+2.Source
+//base
+val lines = ssc.socketTextStream("localhost", 9999, StorageLevel.MEMORY_ONLY)
+val lines = ssc.textFileStream("input_directory")
+//actorStream
+
+//advanced Sources
+val tweets = TwitterUtils.createStream(ssc, None)
+
+3.Basic Transformation
+##map
+##flatMap
+##filter
+##repartition
+##union
+
+4.Aggregation Transformation
+##count
+##reduce
+##countByValue
+##
+
+5.Transformations Available Only on DStream of key-value Pairs
+
+##cogroup //The cogroup method returns a DStream of (K, Seq[V], Seq[W]) when called on a DStream of 
+			(K, Seq[V]) and (K, Seq[W]) pairs
+
+##join
+val leftOuterJoinDS = wordLenPairs1.leftOuterJoin(wordLenPairs2)
+val rightOuterJoinDS = wordLenPairs1.rightOuterJoin(wordLenPairs2)
+val fullOuterJoinDS = wordLenPairs1.fullOuterJoin(wordLenPairs2)
+
+##groupByKey
+##reduceByKey
+
+6.Special Transformations
+##transform  //The transform method returns a DStream by applying an RDD => RDD function
+//The transform method is also useful for applying machine and graph computation algorithms 
+to data streams. 
+//例如Dstream不支持sort
+val sorted = words.transform{rdd => rdd.sortBy((w)=> w)}
+
+##updateStateByKey	//allows you to create and update states for each key in a DStream of keyvalue pairs. 
+//用key更新
+val updateState = (xs: Seq[Int], prevState: Option[Int]) => {
+	prevState match {
+		case Some(prevCount) => Some(prevCount + xs.sum)
+		case None => Some(xs.sum)
+	}
+}
+val runningCount = wordPairs.updateStateByKey(updateState)
+
+7.Output Operations
+
+##Saving to a File System
+wordCounts.saveAsTextFiles("word-counts")
+
+##saveAsObjectFiles
+longWords.saveAsObjectFiles("long-words")
+
+##saveAsHadoopFiles
+
+##Displaying on Console
+longWords.print(5)
+
+##Saving into a Database
+使用foreachRDD
+
+8.Window Operation
+//用来更新model
+//固定时间内处理过去指定时间内的数据,所以会有重叠的现象
+
+##window
+val window = words.window(Seconds(windowLen), Seconds(slidingInterval))
+val longestWord = window reduce { (word1, word2) =>
+	if (word1.length > word2.length) word1 else word2 }
+longestWord.print()
+
+##countByWindow
+##countByValueAndWindow
+##reduceByWindow
+##reduceByKeyAndWindow
+
+
+

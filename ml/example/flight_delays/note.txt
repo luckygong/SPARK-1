@@ -1,0 +1,3 @@
+spark-submit --class solutions.FlightDelay --master yarn sparkflightmllab-1.0.jar
+
+
